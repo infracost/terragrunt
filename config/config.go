@@ -845,7 +845,7 @@ func ParseConfig(ctx *ParsingContext, file *hclparse.File, includeFromChild *Inc
 		ctx.DecodedDependencies = retrievedOutputs
 	}
 
-	evalContext, err := createTerragruntEvalContext(ctx, file.ConfigPath)
+	evalContext, err := CreateTerragruntEvalContext(ctx, file.ConfigPath)
 	if err != nil {
 		return nil, err
 	}

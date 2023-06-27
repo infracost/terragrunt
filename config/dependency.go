@@ -189,7 +189,7 @@ var outputLocks = sync.Map{}
 //
 //	consider whether or not the implementation of the cyclic dependency detection still makes sense.
 func decodeAndRetrieveOutputs(ctx *ParsingContext, file *hclparse.File) (*cty.Value, error) {
-	evalParsingContext, err := createTerragruntEvalContext(ctx, file.ConfigPath)
+	evalParsingContext, err := CreateTerragruntEvalContext(ctx, file.ConfigPath)
 	if err != nil {
 		return nil, err
 	}

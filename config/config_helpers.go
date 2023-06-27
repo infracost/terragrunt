@@ -136,7 +136,7 @@ type TrackInclude struct {
 
 // Create an EvalContext for the HCL2 parser. We can define functions and variables in this ctx that the HCL2 parser
 // will make available to the Terragrunt configuration during parsing.
-func createTerragruntEvalContext(ctx *ParsingContext, configPath string) (*hcl.EvalContext, error) {
+func CreateTerragruntEvalContext(ctx *ParsingContext, configPath string) (*hcl.EvalContext, error) {
 	tfscope := tflang.Scope{
 		BaseDir: filepath.Dir(configPath),
 	}
@@ -189,6 +189,12 @@ func createTerragruntEvalContext(ctx *ParsingContext, configPath string) (*hcl.E
 
 	for k, v := range ctx.PredefinedFunctions {
 		functions[k] = v
+	}
+
+	if ctx.TerragruntOptions.Functions != nil {
+		for k, v := range ctx.TerragruntOptions.Functions(tfscope.BaseDir) {
+			functions[k] = v
+		}
 	}
 
 	evalCtx := &hcl.EvalContext{
