@@ -10,9 +10,13 @@ import (
 	"time"
 
 	"github.com/gruntwork-io/go-commons/errors"
-	"github.com/gruntwork-io/terragrunt/util"
 	"github.com/hashicorp/go-version"
 	"github.com/sirupsen/logrus"
+	"github.com/zclconf/go-cty/cty/function"
+
+	"github.com/gruntwork-io/terragrunt/errors"
+
+	"github.com/gruntwork-io/terragrunt/util"
 )
 
 var TERRAFORM_COMMANDS_WITH_SUBCOMMAND = []string{
@@ -246,6 +250,15 @@ type TerragruntOptions struct {
 
 	// Disalbes validation terraform command
 	DisableCommandValidation bool
+
+	// Functions is an optional field which provides a way to add extra functions to the Terragrunt Evaluation Context.
+	// It specifies a function which will be called with the directory of the terragrunt.hcl which is being evaluated.
+	// It should return a map where keys are the names of Terragrunt functions, and values are the corresponding function
+	// implementations. These functions are incorporated into the hcl.EvalContext prior to evaluation.
+	// They always supersede the base functions from Terraform or Terragrunt. This means that the
+	// Functions field can be utilized to overwrite any base functions, which can be particularly
+	// beneficial for testing or cases where certain functions should not be executed.
+	Functions func(baseDir string) map[string]function.Function
 }
 
 // IAMOptions represents options that are used by Terragrunt to assume an IAM role.
@@ -443,6 +456,7 @@ func (opts *TerragruntOptions) Clone(terragruntConfigPath string) *TerragruntOpt
 		FailIfBucketCreationRequired:   opts.FailIfBucketCreationRequired,
 		DisableBucketUpdate:            opts.DisableBucketUpdate,
 		TerraformImplementation:        opts.TerraformImplementation,
+		Functions:                      opts.Functions,
 	}
 }
 
