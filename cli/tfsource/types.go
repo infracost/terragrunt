@@ -254,8 +254,6 @@ func encodeSourceName(sourceUrl *url.URL) (string, error) {
 		return "", errors.WithStackTrace(err)
 	}
 
-	sourceUrlNoQuery.RawQuery = ""
-
 	return util.EncodeBase64Sha1(sourceUrlNoQuery.String()), nil
 }
 
