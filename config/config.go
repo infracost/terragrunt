@@ -80,6 +80,10 @@ var (
 		return []hclparse.Option{
 			hclparse.WithDiagnosticsWriter(writer, opts.DisableLogColors),
 			hclparse.WithFileUpdate(updateBareIncludeBlock),
+			hclparse.WithDiagnosticsHandler(func(file *hcl.File, diags hcl.Diagnostics) (hcl.Diagnostics, error) {
+				opts.Logger.Debugf("an HCL diagnostic was returned decoding file, err: %s", diags.Error())
+				return nil, nil
+			}),
 		}
 	}
 
