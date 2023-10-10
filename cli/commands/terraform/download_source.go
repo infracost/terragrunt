@@ -25,6 +25,8 @@ const ModuleInitRequiredFile = ".terragrunt-init-required"
 
 const tfLintConfig = ".tflint.hcl"
 
+// DownloadTerraformSource adds a Terraform source to the Terragrunt cache if necessary.
+//
 // 1. Download the given source URL, which should use Terraform's module source syntax, into a temporary folder
 // 2. Check if module directory exists in temporary folder
 // 3. Copy the contents of terragruntOptions.WorkingDir into the temporary folder.
@@ -32,7 +34,7 @@ const tfLintConfig = ".tflint.hcl"
 //
 // See the NewTerraformSource method for how we determine the temporary folder so we can reuse it across multiple
 // runs of Terragrunt to avoid downloading everything from scratch every time.
-func downloadTerraformSource(ctx context.Context, source string, terragruntOptions *options.TerragruntOptions, terragruntConfig *config.TerragruntConfig) (*options.TerragruntOptions, error) {
+func DownloadTerraformSource(ctx context.Context, source string, terragruntOptions *options.TerragruntOptions, terragruntConfig *config.TerragruntConfig) (*options.TerragruntOptions, error) {
 	terraformSource, err := terraform.NewSource(source, terragruntOptions.DownloadDir, terragruntOptions.WorkingDir, terragruntOptions.Logger)
 	if err != nil {
 		return nil, err

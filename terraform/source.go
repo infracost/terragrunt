@@ -178,8 +178,7 @@ func NewSource(source string, downloadDir string, workingDir string, logger *log
 		return nil, err
 	}
 
-	encodedWorkingDir := util.EncodeBase64Sha1(canonicalWorkingDir)
-	updatedDownloadDir := util.JoinPath(downloadDir, encodedWorkingDir, rootPath)
+	updatedDownloadDir := util.JoinPath(downloadDir, rootPath)
 	updatedWorkingDir := util.JoinPath(updatedDownloadDir, modulePath)
 	versionFile := util.JoinPath(updatedDownloadDir, ".terragrunt-source-version")
 
@@ -313,8 +312,6 @@ func encodeSourceName(sourceUrl *url.URL) (string, error) {
 	if err != nil {
 		return "", errors.WithStackTrace(err)
 	}
-
-	sourceUrlNoQuery.RawQuery = ""
 
 	return util.EncodeBase64Sha1(sourceUrlNoQuery.String()), nil
 }

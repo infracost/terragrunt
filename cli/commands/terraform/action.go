@@ -184,7 +184,7 @@ func runTerraform(ctx context.Context, terragruntOptions *options.TerragruntOpti
 		err = telemetry.Telemetry(ctx, terragruntOptions, "download_terraform_source", map[string]interface{}{
 			"sourceUrl": sourceUrl,
 		}, func(childCtx context.Context) error {
-			updatedTerragruntOptions, err = downloadTerraformSource(ctx, sourceUrl, terragruntOptions, terragruntConfig)
+			updatedTerragruntOptions, err = DownloadTerraformSource(ctx, sourceUrl, terragruntOptions, terragruntConfig)
 			return err
 		})
 
