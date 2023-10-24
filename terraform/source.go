@@ -8,13 +8,16 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-getter"
 	urlhelper "github.com/hashicorp/go-getter/helper/url"
+	"github.com/mitchellh/hashstructure/v2"
 	"github.com/sirupsen/logrus"
 
 	"github.com/gruntwork-io/go-commons/errors"
+	"github.com/gruntwork-io/terragrunt/codegen"
 	"github.com/gruntwork-io/terragrunt/util"
 )
 
@@ -145,7 +148,8 @@ func (terraformSource Source) WriteVersionFile() error {
 //  1. Always download source URLs pointing to local file paths.
 //  2. Only download source URLs pointing to remote paths if /T/W/H doesn't already exist or, if it does exist, if the
 //     version number in /T/W/H/.terragrunt-source-version doesn't match the current version.
-func NewSource(source string, downloadDir string, workingDir string, logger *logrus.Entry) (*Source, error) {
+func NewSource(source string, downloadDir string, workingDir string, generateConfigs map[string]codegen.GenerateConfig, logger *logrus.Entry) (*Source, error) {
+
 	canonicalWorkingDir, err := util.CanonicalPath(workingDir, "")
 	if err != nil {
 		return nil, err
@@ -176,6 +180,18 @@ func NewSource(source string, downloadDir string, workingDir string, logger *log
 	rootPath, err := encodeSourceName(rootSourceUrl)
 	if err != nil {
 		return nil, err
+	}
+
+	// generate hash of GenerateConfigs so we can use different working directories if the
+	// any configs are being dynamically generated
+	if generateConfigs != nil {
+		hash, err := hashstructure.Hash(generateConfigs, hashstructure.FormatV2, nil)
+		if err != nil {
+			return nil, err
+		}
+		suffix := util.EncodeBase64Sha1(strconv.FormatUint(hash, 10))
+
+		rootPath = fmt.Sprintf("%s-%s", rootPath, suffix)
 	}
 
 	updatedDownloadDir := util.JoinPath(downloadDir, rootPath)

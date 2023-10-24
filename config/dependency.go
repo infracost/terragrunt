@@ -34,7 +34,6 @@ import (
 	"github.com/gruntwork-io/terragrunt/remote"
 	"github.com/gruntwork-io/terragrunt/shell"
 	"github.com/gruntwork-io/terragrunt/terraform"
-	terraformcmd "github.com/gruntwork-io/terragrunt/terraform"
 	"github.com/gruntwork-io/terragrunt/util"
 )
 
@@ -788,7 +787,7 @@ func terragruntAlreadyInit(terragruntOptions *options.TerragruntOptions, configP
 			workingDir = filepath.Dir(configPath)
 		}
 	} else {
-		terraformSource, err := terraformcmd.NewSource(sourceUrl, terragruntOptions.DownloadDir, terragruntOptions.WorkingDir, terragruntOptions.Logger)
+		terraformSource, err := terraformcmd.NewSource(sourceUrl, terragruntOptions.DownloadDir, terragruntOptions.WorkingDir, nil, terragruntOptions.Logger)
 		if err != nil {
 			return false, "", err
 		}

@@ -73,6 +73,7 @@ require (
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
+	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/pkg/errors v0.9.1
 	github.com/posener/complete v1.2.3
