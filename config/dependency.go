@@ -644,7 +644,7 @@ func terragruntAlreadyInit(terragruntOptions *options.TerragruntOptions, configP
 			workingDir = filepath.Dir(configPath)
 		}
 	} else {
-		terraformSource, err := terraform.NewSource(sourceUrl, terragruntOptions.DownloadDir, terragruntOptions.WorkingDir, terragruntOptions.Logger)
+		terraformSource, err := terraform.NewSource(sourceUrl, terragruntOptions.DownloadDir, terragruntOptions.WorkingDir, nil, terragruntOptions.Logger)
 		if err != nil {
 			return false, "", err
 		}

@@ -58,6 +58,7 @@ require (
 require (
 	github.com/gruntwork-io/go-commons v0.17.1
 	github.com/gruntwork-io/gruntwork-cli v0.7.0
+	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/urfave/cli/v2 v2.25.5
 )
 
