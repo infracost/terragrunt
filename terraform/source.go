@@ -184,7 +184,7 @@ func NewSource(source string, downloadDir string, workingDir string, generateCon
 
 	// generate hash of GenerateConfigs so we can use different working directories if the
 	// any configs are being dynamically generated
-	if generateConfigs != nil {
+	if len(generateConfigs) > 0 {
 		hash, err := hashstructure.Hash(generateConfigs, hashstructure.FormatV2, nil)
 		if err != nil {
 			return nil, err
