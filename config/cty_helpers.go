@@ -3,13 +3,13 @@ package config
 import (
 	"encoding/json"
 
+	"github.com/gruntwork-io/go-commons/errors"
 	"github.com/imdario/mergo"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/gocty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/gruntwork-io/go-commons/errors"
 	"github.com/gruntwork-io/terragrunt/options"
 )
 
@@ -209,13 +209,49 @@ func deepMergeCtyMapsMapOnly(target cty.Value, source cty.Value, opts ...func(*m
 	return &outCty, nil
 }
 
+// removeUnknowns is a recursive function that takes a cty.Value as input and
+// removes any unknown values from nested objects, maps, lists, and tuples. It
+// returns a cty.Value with all unknown values replaced with null values. This
+// should be called before marshalling/unmarshalling the value.
+func removeUnknowns(val cty.Value) cty.Value {
+	if !val.IsKnown() {
+		return cty.NullVal(val.Type())
+	}
+
+	switch {
+	case val.Type().IsObjectType() || val.Type().IsMapType():
+		objIt := val.ElementIterator()
+		newMap := make(map[string]cty.Value)
+
+		for objIt.Next() {
+			k, v := objIt.Element()
+			newMap[k.AsString()] = removeUnknowns(v)
+		}
+
+		return cty.ObjectVal(newMap)
+	case val.Type().IsTupleType() || val.Type().IsListType():
+		var newList []cty.Value
+		for i := 0; i < val.LengthInt(); i++ {
+			newList = append(newList, removeUnknowns(val.Index(cty.NumberIntVal(int64(i)))))
+		}
+		return cty.TupleVal(newList)
+	default:
+		return val
+	}
+}
+
 // This is a hacky workaround to convert a cty Value to a Go map[string]interface{}. cty does not support this directly
 // (https://github.com/hashicorp/hcl2/issues/108) and doing it with gocty.FromCtyValue is nearly impossible, as cty
 // requires you to specify all the output types and will error out when it hits interface{}. So, as an ugly workaround,
 // we convert the given value to JSON using cty's JSON library and then convert the JSON back to a
 // map[string]interface{} using the Go json library.
 func parseCtyValueToMap(value cty.Value) (map[string]interface{}, error) {
-	jsonBytes, err := ctyjson.Marshal(value, cty.DynamicPseudoType)
+	// remove all the unknown values from cty.Value before we marshal it. We do this
+	// as ctyjson does not handle unknown values and any unknown values will cause
+	// the Marshall to fail.
+	cleanedValue := removeUnknowns(value)
+
+	jsonBytes, err := ctyjson.Marshal(cleanedValue, cty.DynamicPseudoType)
 	if err != nil {
 		return nil, errors.WithStackTrace(err)
 	}
@@ -228,7 +264,7 @@ func parseCtyValueToMap(value cty.Value) (map[string]interface{}, error) {
 	return ctyJsonOutput.Value, nil
 }
 
-// When you convert a cty value to JSON, if any of that types are not yet known (i.e., are labeled as
+// CtyJsonOutput When you convert a cty value to JSON, if any of that types are not yet known (i.e., are labeled as
 // DynamicPseudoType), cty's Marshall method will write the type information to a type field and the actual value to
 // a value field. This struct is used to capture that information so when we parse the JSON back into a Go struct, we
 // can pull out just the Value field we need.
