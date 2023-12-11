@@ -218,6 +218,10 @@ func removeUnknowns(val cty.Value) cty.Value {
 		return cty.NullVal(val.Type())
 	}
 
+	if val.IsNull() {
+		return val
+	}
+
 	switch {
 	case val.Type().IsObjectType() || val.Type().IsMapType():
 		objIt := val.ElementIterator()
@@ -225,7 +229,12 @@ func removeUnknowns(val cty.Value) cty.Value {
 
 		for objIt.Next() {
 			k, v := objIt.Element()
-			newMap[k.AsString()] = removeUnknowns(v)
+
+			var keyAsString string
+			err := gocty.FromCtyValue(k, &keyAsString)
+			if err == nil {
+				newMap[keyAsString] = removeUnknowns(v)
+			}
 		}
 
 		return cty.ObjectVal(newMap)
