@@ -14,6 +14,7 @@ import (
 	"github.com/gruntwork-io/terragrunt/util"
 	"github.com/hashicorp/go-version"
 	"github.com/sirupsen/logrus"
+	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 )
 
@@ -327,6 +328,12 @@ type TerragruntOptions struct {
 	// Functions field can be utilized to overwrite any base functions, which can be particularly
 	// beneficial for testing or cases where certain functions should not be executed.
 	Functions func(baseDir string) map[string]function.Function
+
+	// GetOutputs is a function that returns the outputs of a module. It is used to
+	// get the outputs of a module when executing the Terragrunt command is not
+	// possible. This is useful in environments where Terragrunt is not installed and
+	// outputs are orchestrated by a different method.
+	GetOutputs func(targetConfig string, ops *TerragruntOptions) (*cty.Value, bool, error)
 }
 
 // TerragruntOptionsFunc is a functional option type used to pass options in certain integration tests
@@ -580,6 +587,7 @@ func (opts *TerragruntOptions) Clone(terragruntConfigPath string) *TerragruntOpt
 		SkipOutput:                     opts.SkipOutput,
 		Engine:                         cloneEngineOptions(opts.Engine),
 		Functions:                      opts.Functions,
+		GetOutputs:                     opts.GetOutputs,
 	}
 }
 

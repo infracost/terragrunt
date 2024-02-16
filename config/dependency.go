@@ -534,6 +534,10 @@ func getTerragruntOutput(ctx *ParsingContext, dependencyConfig Dependency) (*cty
 		return nil, true, errors.WithStackTrace(DependencyConfigNotFound{Path: targetConfigPath})
 	}
 
+	if ctx.TerragruntOptions.GetOutputs != nil {
+		return ctx.TerragruntOptions.GetOutputs(targetConfigPath, ctx.TerragruntOptions)
+	}
+
 	jsonBytes, err := getOutputJsonWithCaching(ctx, targetConfigPath)
 	if err != nil {
 		if !isRenderJsonCommand(ctx) && !isAwsS3NoSuchKey(err) {
