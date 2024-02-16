@@ -22,6 +22,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/gruntwork-io/go-commons/errors"
+
 	"github.com/gruntwork-io/terragrunt/aws_helper"
 	"github.com/gruntwork-io/terragrunt/codegen"
 	"github.com/gruntwork-io/terragrunt/options"
@@ -425,6 +426,10 @@ func getTerragruntOutput(dependencyConfig Dependency, terragruntOptions *options
 	targetConfig := getCleanedTargetConfigPath(dependencyConfig.ConfigPath, terragruntOptions.TerragruntConfigPath)
 	if !util.FileExists(targetConfig) {
 		return nil, true, errors.WithStackTrace(DependencyConfigNotFound{Path: targetConfig})
+	}
+
+	if terragruntOptions.GetOutputs != nil {
+		return terragruntOptions.GetOutputs(targetConfig, terragruntOptions)
 	}
 
 	jsonBytes, err := getOutputJsonWithCaching(targetConfig, terragruntOptions)

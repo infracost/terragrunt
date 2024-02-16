@@ -12,6 +12,7 @@ import (
 	"github.com/gruntwork-io/go-commons/errors"
 	"github.com/hashicorp/go-version"
 	"github.com/sirupsen/logrus"
+	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 
 	"github.com/gruntwork-io/terragrunt/util"
@@ -257,6 +258,12 @@ type TerragruntOptions struct {
 
 	// Disalbes validation terraform command
 	DisableCommandValidation bool
+
+	// GetOutputs is a function that returns the outputs of a module. It is used to
+	// get the outputs of a module when executing the Terragrunt command is not
+	// possible. This is useful in environments where Terragrunt is not installed and
+	// outputs are orchestrated by a different method.
+	GetOutputs func(targetConfig string, ops *TerragruntOptions) (*cty.Value, bool, error)
 }
 
 // IAMOptions represents options that are used by Terragrunt to assume an IAM role.
@@ -455,6 +462,7 @@ func (opts *TerragruntOptions) Clone(terragruntConfigPath string) *TerragruntOpt
 		DisableBucketUpdate:            opts.DisableBucketUpdate,
 		TerraformImplementation:        opts.TerraformImplementation,
 		Functions:                      opts.Functions,
+		GetOutputs:                     opts.GetOutputs,
 	}
 }
 
