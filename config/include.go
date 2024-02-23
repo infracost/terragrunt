@@ -14,6 +14,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/gruntwork-io/go-commons/errors"
+
 	"github.com/gruntwork-io/terragrunt/options"
 	"github.com/gruntwork-io/terragrunt/util"
 )
@@ -330,13 +331,14 @@ func (targetConfig *TerragruntConfig) Merge(sourceConfig *TerragruntConfig, terr
 		targetConfig.RetryableErrors = sourceConfig.RetryableErrors
 	}
 
-	// Merge the generate configs. This is a shallow merge. Meaning, if the child has the same name generate block, then the
-	// child's generate block will override the parent's block.
-
-	err := validateGenerateConfigs(&sourceConfig.GenerateConfigs, &targetConfig.GenerateConfigs)
-	if err != nil {
-		return err
-	}
+	// We don't want to validate the generate config here, as
+	// this might result in a duplicate block error. Duplicate blocks don't impact
+	// Infracost, and we don't want to fail the merge.
+	//
+	// err := validateGenerateConfigs(&sourceConfig.GenerateConfigs, &targetConfig.GenerateConfigs)
+	// if err != nil {
+	//	return err
+	// }
 
 	for key, val := range sourceConfig.GenerateConfigs {
 		targetConfig.GenerateConfigs[key] = val
