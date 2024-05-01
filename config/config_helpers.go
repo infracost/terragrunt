@@ -18,6 +18,7 @@ import (
 	"go.mozilla.org/sops/v3/decrypt"
 
 	"github.com/gruntwork-io/go-commons/errors"
+
 	"github.com/gruntwork-io/terragrunt/aws_helper"
 	"github.com/gruntwork-io/terragrunt/options"
 	"github.com/gruntwork-io/terragrunt/shell"
@@ -355,15 +356,15 @@ func runCommand(args []string, trackInclude *TrackInclude, terragruntOptions *op
 
 func getEnvironmentVariable(parameters []string, trackInclude *TrackInclude, terragruntOptions *options.TerragruntOptions) (string, error) {
 	parameterMap, err := parseGetEnvParameters(parameters)
-
 	if err != nil {
-		return "", errors.WithStackTrace(err)
+		terragruntOptions.Logger.Debugf("could not get env parameter: %s", err)
+		return "", nil
 	}
 	envValue, exists := terragruntOptions.Env[parameterMap.Name]
 
 	if !exists {
 		if parameterMap.IsRequired {
-			return "", errors.WithStackTrace(EnvVarNotFound{EnvVar: parameterMap.Name})
+			terragruntOptions.Logger.Debugf("required env variable %s not set", parameterMap.Name)
 		}
 		envValue = parameterMap.DefaultValue
 	}
