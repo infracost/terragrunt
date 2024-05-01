@@ -24,6 +24,7 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/gruntwork-io/go-commons/errors"
+
 	"github.com/gruntwork-io/terragrunt/aws_helper"
 	"github.com/gruntwork-io/terragrunt/config/hclparse"
 	"github.com/gruntwork-io/terragrunt/internal/cache"
@@ -394,16 +395,16 @@ func RunCommand(ctx *ParsingContext, args []string) (string, error) {
 
 func getEnvironmentVariable(ctx *ParsingContext, parameters []string) (string, error) {
 	parameterMap, err := parseGetEnvParameters(parameters)
-
 	if err != nil {
-		return "", errors.WithStackTrace(err)
+		ctx.TerragruntOptions.Logger.Debugf("could not get env parameter: %s", err)
+		return "", nil
 	}
 
 	envValue, exists := ctx.TerragruntOptions.Env[parameterMap.Name]
 
 	if !exists {
 		if parameterMap.IsRequired {
-			return "", errors.WithStackTrace(EnvVarNotFoundError{EnvVar: parameterMap.Name})
+			ctx.TerragruntOptions.Logger.Debugf("required env variable %s not set", parameterMap.Name)
 		}
 
 		envValue = parameterMap.DefaultValue
