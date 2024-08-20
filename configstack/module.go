@@ -353,8 +353,6 @@ func resolveTerraformModule(terragruntConfigPath string, moduleMap map[string]*T
 func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule, modulesAlreadyProcessed map[string]*TerraformModule, recursionLevel int, terragruntOptions *options.TerragruntOptions, childTerragruntConfig *config.TerragruntConfig) (map[string]*TerraformModule, error) {
 	allExternalDependencies := map[string]*TerraformModule{}
 
-	fmt.Println("mergeMaps")
-
 	modulesToSkip := mergeMaps(moduleMap, modulesAlreadyProcessed)
 
 	// Simple protection from circular dependencies causing a Stack Overflow due to infinite recursion
@@ -364,8 +362,6 @@ func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule
 
 	sortedKeys := getSortedKeys(moduleMap)
 
-	fmt.Println("starting loop")
-
 	for _, key := range sortedKeys {
 		fmt.Printf("resolveDependenciesForModule: %s\n", key)
 		module := moduleMap[key]
@@ -373,6 +369,8 @@ func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule
 		if err != nil {
 			return externalDependencies, err
 		}
+
+		fmt.Printf("externalDependencies: %d, %s\n", len(externalDependencies), key)
 
 		for _, externalDependency := range externalDependencies {
 			if _, alreadyFound := modulesToSkip[externalDependency.Path]; alreadyFound {
@@ -393,7 +391,7 @@ func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule
 	}
 
 	if len(allExternalDependencies) > 0 {
-		fmt.Printf("resolveExternalDependenciesForModules: %d, %v\n", recursionLevel + 1, allExternalDependencies)
+		fmt.Printf("resolveExternalDependenciesForModules: %d, %v\n", recursionLevel + 1, len(allExternalDependencies))
 		recursiveDependencies, err := resolveExternalDependenciesForModules(allExternalDependencies, moduleMap, recursionLevel+1, terragruntOptions, childTerragruntConfig)
 		if err != nil {
 			return allExternalDependencies, err
