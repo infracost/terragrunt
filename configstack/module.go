@@ -19,7 +19,7 @@ import (
 	"github.com/gruntwork-io/terragrunt/util"
 )
 
-const maxLevelsOfRecursion = 20
+const maxLevelsOfRecursion = 100
 
 // Represents a single module (i.e. folder with Terraform templates), including the Terragrunt configuration for that
 // module and the list of other modules that this module depends on
@@ -56,21 +56,21 @@ func ResolveTerraformModules(terragruntConfigPaths []string, terragruntOptions *
 		return nil, err
 	}
 
-	fmt.Println("resolveModules: %v", canonicalTerragruntConfigPaths)
+	fmt.Printf("resolveModules: %v\n", canonicalTerragruntConfigPaths)
 
 	modules, err := resolveModules(canonicalTerragruntConfigPaths, terragruntOptions, childTerragruntConfig, howThesePathsWereFound)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("resolveExternalDependenciesForModules: %v", modules)
+	fmt.Printf("resolveExternalDependenciesForModules: %v\n", modules)
 
 	externalDependencies, err := resolveExternalDependenciesForModules(modules, map[string]*TerraformModule{}, 0, terragruntOptions, childTerragruntConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("crosslinkDependencies: %v", externalDependencies)
+	fmt.Printf("crosslinkDependencies: %v\n", externalDependencies)
 
 	crossLinkedModules, err := crosslinkDependencies(mergeMaps(modules, externalDependencies), canonicalTerragruntConfigPaths)
 	if err != nil {
@@ -352,6 +352,9 @@ func resolveTerraformModule(terragruntConfigPath string, moduleMap map[string]*T
 // the Dependencies field of the TerraformModule struct (see the crosslinkDependencies method for that).
 func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule, modulesAlreadyProcessed map[string]*TerraformModule, recursionLevel int, terragruntOptions *options.TerragruntOptions, childTerragruntConfig *config.TerragruntConfig) (map[string]*TerraformModule, error) {
 	allExternalDependencies := map[string]*TerraformModule{}
+
+	fmt.Println("mergeMaps")
+
 	modulesToSkip := mergeMaps(moduleMap, modulesAlreadyProcessed)
 
 	// Simple protection from circular dependencies causing a Stack Overflow due to infinite recursion
@@ -360,7 +363,11 @@ func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule
 	}
 
 	sortedKeys := getSortedKeys(moduleMap)
+
+	fmt.Println("starting loop")
+
 	for _, key := range sortedKeys {
+		fmt.Printf("resolveDependenciesForModule: %s\n", key)
 		module := moduleMap[key]
 		externalDependencies, err := resolveDependenciesForModule(module, modulesToSkip, terragruntOptions, childTerragruntConfig, false)
 		if err != nil {
@@ -386,6 +393,7 @@ func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule
 	}
 
 	if len(allExternalDependencies) > 0 {
+		fmt.Printf("resolveExternalDependenciesForModules: %d, %v\n", recursionLevel + 1, allExternalDependencies)
 		recursiveDependencies, err := resolveExternalDependenciesForModules(allExternalDependencies, moduleMap, recursionLevel+1, terragruntOptions, childTerragruntConfig)
 		if err != nil {
 			return allExternalDependencies, err
