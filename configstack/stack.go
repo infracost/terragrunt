@@ -263,10 +263,14 @@ func createStackForTerragruntConfigPaths(path string, terragruntConfigPaths []st
 		return nil, errors.WithStackTrace(NoTerraformModulesFound)
 	}
 
+	fmt.Println("ResolveTerraformModules")
+
 	modules, err := ResolveTerraformModules(terragruntConfigPaths, terragruntOptions, childTerragruntConfig, howThesePathsWereFound)
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("CheckForCycles")
 
 	stack := &Stack{Path: path, Modules: modules}
 	if err := stack.CheckForCycles(); err != nil {

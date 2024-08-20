@@ -56,15 +56,21 @@ func ResolveTerraformModules(terragruntConfigPaths []string, terragruntOptions *
 		return nil, err
 	}
 
+	fmt.Println("resolveModules: %v", canonicalTerragruntConfigPaths)
+
 	modules, err := resolveModules(canonicalTerragruntConfigPaths, terragruntOptions, childTerragruntConfig, howThesePathsWereFound)
 	if err != nil {
 		return nil, err
 	}
 
+	fmt.Println("resolveExternalDependenciesForModules: %v", modules)
+
 	externalDependencies, err := resolveExternalDependenciesForModules(modules, map[string]*TerraformModule{}, 0, terragruntOptions, childTerragruntConfig)
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("crosslinkDependencies: %v", externalDependencies)
 
 	crossLinkedModules, err := crosslinkDependencies(mergeMaps(modules, externalDependencies), canonicalTerragruntConfigPaths)
 	if err != nil {
