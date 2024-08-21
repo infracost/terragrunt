@@ -360,7 +360,7 @@ func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule
 		return allExternalDependencies, errors.WithStackTrace(InfiniteRecursion{RecursionLevel: maxLevelsOfRecursion, Modules: modulesToSkip})
 	}
 
-	fmt.Println("modulesToSkip: ", modulesToSkip)
+	fmt.Printf("modulesToSkip (%d): %v \n", modulesToSkip)
 
 	sortedKeys := getSortedKeys(moduleMap)
 
@@ -375,7 +375,7 @@ func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule
 		// fmt.Printf("externalDependencies: %d, %s\n", len(externalDependencies), key)
 
 		for _, externalDependency := range externalDependencies {
-			fmt.Println("path: ", externalDependency.Path)
+			fmt.Printf("path (%d): %s\n", recursionLevel, externalDependency.Path)
 
 			if _, alreadyFound := modulesToSkip[externalDependency.Path]; alreadyFound {
 				fmt.Println("continuing")
