@@ -399,7 +399,7 @@ func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule
 
 	if len(allExternalDependencies) > 0 {
 		// fmt.Printf("resolveExternalDependenciesForModules: %d, %v\n", recursionLevel + 1, len(allExternalDependencies))
-		recursiveDependencies, err := resolveExternalDependenciesForModules(allExternalDependencies, moduleMap, recursionLevel+1, terragruntOptions, childTerragruntConfig)
+		recursiveDependencies, err := resolveExternalDependenciesForModules(allExternalDependencies, modulesToSkip, recursionLevel+1, terragruntOptions, childTerragruntConfig)
 		if err != nil {
 			return allExternalDependencies, err
 		}
