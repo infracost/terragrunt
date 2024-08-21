@@ -365,19 +365,20 @@ func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule
 	sortedKeys := getSortedKeys(moduleMap)
 
 	for _, key := range sortedKeys {
-		fmt.Printf("resolveDependenciesForModule: %s\n", key)
+		// fmt.Printf("resolveDependenciesForModule: %s\n", key)
 		module := moduleMap[key]
 		externalDependencies, err := resolveDependenciesForModule(module, modulesToSkip, terragruntOptions, childTerragruntConfig, false)
 		if err != nil {
 			return externalDependencies, err
 		}
 
-		fmt.Printf("externalDependencies: %d, %s\n", len(externalDependencies), key)
+		// fmt.Printf("externalDependencies: %d, %s\n", len(externalDependencies), key)
 
 		for _, externalDependency := range externalDependencies {
 			fmt.Println("path: ", externalDependency.Path)
 
 			if _, alreadyFound := modulesToSkip[externalDependency.Path]; alreadyFound {
+				fmt.Println("continuing")
 				continue
 			}
 
@@ -395,7 +396,7 @@ func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule
 	}
 
 	if len(allExternalDependencies) > 0 {
-		fmt.Printf("resolveExternalDependenciesForModules: %d, %v\n", recursionLevel + 1, len(allExternalDependencies))
+		// fmt.Printf("resolveExternalDependenciesForModules: %d, %v\n", recursionLevel + 1, len(allExternalDependencies))
 		recursiveDependencies, err := resolveExternalDependenciesForModules(allExternalDependencies, moduleMap, recursionLevel+1, terragruntOptions, childTerragruntConfig)
 		if err != nil {
 			return allExternalDependencies, err
