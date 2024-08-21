@@ -360,7 +360,7 @@ func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule
 		return allExternalDependencies, errors.WithStackTrace(InfiniteRecursion{RecursionLevel: maxLevelsOfRecursion, Modules: modulesToSkip})
 	}
 
-	fmt.Printf("modulesToSkip (%d): %v \n", modulesToSkip)
+	fmt.Printf("modulesToSkip (%d): %v \n", recursionLevel, modulesToSkip)
 
 	sortedKeys := getSortedKeys(moduleMap)
 
