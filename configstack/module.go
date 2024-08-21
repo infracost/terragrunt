@@ -56,21 +56,15 @@ func ResolveTerraformModules(terragruntConfigPaths []string, terragruntOptions *
 		return nil, err
 	}
 
-	fmt.Printf("resolveModules: %v\n", canonicalTerragruntConfigPaths)
-
 	modules, err := resolveModules(canonicalTerragruntConfigPaths, terragruntOptions, childTerragruntConfig, howThesePathsWereFound)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("resolveExternalDependenciesForModules: %v\n", modules)
-
 	externalDependencies, err := resolveExternalDependenciesForModules(modules, map[string]*TerraformModule{}, 0, terragruntOptions, childTerragruntConfig)
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Printf("crosslinkDependencies: %v\n", externalDependencies)
 
 	crossLinkedModules, err := crosslinkDependencies(mergeMaps(modules, externalDependencies), canonicalTerragruntConfigPaths)
 	if err != nil {
@@ -360,27 +354,17 @@ func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule
 		return allExternalDependencies, errors.WithStackTrace(InfiniteRecursion{RecursionLevel: maxLevelsOfRecursion, Modules: modulesToSkip})
 	}
 
-	fmt.Printf("moduleMap (%d): %v \n", recursionLevel, moduleMap)
-	fmt.Printf("modulesAlreadyProcessed (%d): %v \n", recursionLevel, modulesToSkip)
-	fmt.Printf("modulesToSkip (%d): %v \n", recursionLevel, modulesToSkip)
-
 	sortedKeys := getSortedKeys(moduleMap)
 
 	for _, key := range sortedKeys {
-		// fmt.Printf("resolveDependenciesForModule: %s\n", key)
 		module := moduleMap[key]
 		externalDependencies, err := resolveDependenciesForModule(module, modulesToSkip, terragruntOptions, childTerragruntConfig, false)
 		if err != nil {
 			return externalDependencies, err
 		}
 
-		// fmt.Printf("externalDependencies: %d, %s\n", len(externalDependencies), key)
-
 		for _, externalDependency := range externalDependencies {
-			fmt.Printf("path (%d): %s\n", recursionLevel, externalDependency.Path)
-
 			if _, alreadyFound := modulesToSkip[externalDependency.Path]; alreadyFound {
-				fmt.Println("continuing")
 				continue
 			}
 
@@ -398,8 +382,7 @@ func resolveExternalDependenciesForModules(moduleMap map[string]*TerraformModule
 	}
 
 	if len(allExternalDependencies) > 0 {
-		// fmt.Printf("resolveExternalDependenciesForModules: %d, %v\n", recursionLevel + 1, len(allExternalDependencies))
-		recursiveDependencies, err := resolveExternalDependenciesForModules(allExternalDependencies, modulesToSkip, recursionLevel+1, terragruntOptions, childTerragruntConfig)
+		recursiveDependencies, err := resolveExternalDependenciesForModules(allExternalDependencies, moduleMap, recursionLevel+1, terragruntOptions, childTerragruntConfig)
 		if err != nil {
 			return allExternalDependencies, err
 		}
