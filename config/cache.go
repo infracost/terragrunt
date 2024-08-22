@@ -76,14 +76,14 @@ func (cache *IAMRoleOptionsCache) Put(key string, value options.IAMRoleOptions) 
 
 // TerragruntConfigCache - structure to store cached values
 type TerragruntConfigCache struct {
-	Cache map[string]TerragruntConfig
+	Cache map[string]*TerragruntConfig
 	Mutex *sync.Mutex
 }
 
 // NewTerragruntConfigCache - create new TerragruntConfig cache
 func NewTerragruntConfigCache() *TerragruntConfigCache {
 	return &TerragruntConfigCache{
-		Cache: map[string]TerragruntConfig{},
+		Cache: map[string]*TerragruntConfig{},
 		Mutex: &sync.Mutex{},
 	}
 }
@@ -91,7 +91,7 @@ func NewTerragruntConfigCache() *TerragruntConfigCache {
 // Get - get cached value
 // Design decision: Drop the sha256 because map is already a hashtable
 // See https://go.dev/src/runtime/map.go
-func (cache *TerragruntConfigCache) Get(key string) (TerragruntConfig, bool) {
+func (cache *TerragruntConfigCache) Get(key string) (*TerragruntConfig, bool) {
 	keyAsByte := []byte(key)
 	cacheKey := fmt.Sprintf("%x", keyAsByte)
 
@@ -102,7 +102,7 @@ func (cache *TerragruntConfigCache) Get(key string) (TerragruntConfig, bool) {
 }
 
 // Put - put value in cache
-func (cache *TerragruntConfigCache) Put(key string, value TerragruntConfig) {
+func (cache *TerragruntConfigCache) Put(key string, value *TerragruntConfig) {
 	keyAsByte := []byte(key)
 	cacheKey := fmt.Sprintf("%x", keyAsByte)
 
