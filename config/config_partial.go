@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
+	clone "github.com/huandu/go-clone"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/gruntwork-io/go-commons/errors"
@@ -168,26 +169,29 @@ func TerragruntConfigFromPartialConfigString(
 	filename string,
 	decodeList []PartialDecodeSectionType,
 ) (*TerragruntConfig, error) {
-	if terragruntOptions.UsePartialParseConfigCache {
-		var cacheKey = fmt.Sprintf("%#v-%#v-%#v-%#v", filename, configString, includeFromChild, decodeList)
-		var config, found = terragruntConfigCache.Get(cacheKey)
+	var cacheKey = fmt.Sprintf("%#v-%#v-%#v-%#v", filename, configString, includeFromChild, decodeList)
 
-		if !found {
-			terragruntOptions.Logger.Debugf("Cache miss for '%s' (partial parsing), decodeList: '%v'.", filename, decodeList)
-			tgConfig, err := PartialParseConfigString(configString, terragruntOptions, includeFromChild, filename, decodeList)
-			if err != nil {
-				return nil, err
-			}
-			config = *tgConfig
-			terragruntConfigCache.Put(cacheKey, config)
-		} else {
+	if terragruntOptions.UsePartialParseConfigCache {
+		if config, found := terragruntConfigCache.Get(cacheKey); found {
 			terragruntOptions.Logger.Debugf("Cache hit for '%s' (partial parsing), decodeList: '%v'.", filename, decodeList)
+			deepCopy := clone.Clone(config).(*TerragruntConfig)
+			return deepCopy, nil
 		}
 
-		return &config, nil
-	} else {
-		return PartialParseConfigString(configString, terragruntOptions, includeFromChild, filename, decodeList)
+		terragruntOptions.Logger.Debugf("Cache miss for '%s' (partial parsing), decodeList: '%v'.", filename, decodeList)
 	}
+
+	config, err := PartialParseConfigString(configString, terragruntOptions, includeFromChild, filename, decodeList)
+	if err != nil {
+		return nil, err
+	}
+
+	if terragruntOptions.UsePartialParseConfigCache {
+		putConfig := clone.Clone(config).(*TerragruntConfig)
+		terragruntConfigCache.Put(cacheKey, putConfig)
+	}
+
+	return config, nil
 }
 
 // PartialParseConfigString partially parses and decodes the provided string. Which blocks/attributes to decode is
