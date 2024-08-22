@@ -566,7 +566,7 @@ func getWorkingDir(ctx *ParsingContext) (string, error) {
 		return ctx.TerragruntOptions.WorkingDir, nil
 	}
 
-	source, err := terraform.NewSource(sourceUrl, ctx.TerragruntOptions.DownloadDir, ctx.TerragruntOptions.WorkingDir, ctx.TerragruntOptions.Logger)
+	source, err := terraform.NewSource(sourceUrl, ctx.TerragruntOptions.DownloadDir, ctx.TerragruntOptions.WorkingDir, nil, ctx.TerragruntOptions.Logger)
 	if err != nil {
 		return "", err
 	}
