@@ -2,8 +2,6 @@ package cache
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -29,33 +27,35 @@ func NewCache[V any](name string) *Cache[V] {
 
 // Get - fetch value from cache by key
 func (c *Cache[V]) Get(ctx context.Context, key string) (V, bool) {
-	c.Mutex.RLock()
-	defer c.Mutex.RUnlock()
+	// c.Mutex.RLock()
+	// defer c.Mutex.RUnlock()
 
-	keyHash := sha256.Sum256([]byte(key))
-	cacheKey := hex.EncodeToString(keyHash[:])
-	value, found := c.Cache[cacheKey]
+	// keyHash := sha256.Sum256([]byte(key))
+	// cacheKey := hex.EncodeToString(keyHash[:])
+	// value, found := c.Cache[cacheKey]
 
-	telemetry.Count(ctx, c.Name+"_cache_get", 1)
+	// telemetry.Count(ctx, c.Name+"_cache_get", 1)
 
-	if found {
-		telemetry.Count(ctx, c.Name+"_cache_hit", 1)
-	} else {
-		telemetry.Count(ctx, c.Name+"_cache_miss", 1)
-	}
+	// if found {
+	// 	telemetry.Count(ctx, c.Name+"_cache_hit", 1)
+	// } else {
+	// 	telemetry.Count(ctx, c.Name+"_cache_miss", 1)
+	// }
 
-	return value, found
+	// return value, found
+	var value V
+	return value, false
 }
 
 // Put - put value into cache by key
 func (c *Cache[V]) Put(ctx context.Context, key string, value V) {
-	c.Mutex.Lock()
-	defer c.Mutex.Unlock()
-	telemetry.Count(ctx, c.Name+"_cache_put", 1)
+	// c.Mutex.Lock()
+	// defer c.Mutex.Unlock()
+	// telemetry.Count(ctx, c.Name+"_cache_put", 1)
 
-	keyHash := sha256.Sum256([]byte(key))
-	cacheKey := hex.EncodeToString(keyHash[:])
-	c.Cache[cacheKey] = value
+	// keyHash := sha256.Sum256([]byte(key))
+	// cacheKey := hex.EncodeToString(keyHash[:])
+	// c.Cache[cacheKey] = value
 }
 
 // ExpiringItem - item with expiration time
