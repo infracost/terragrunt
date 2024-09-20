@@ -306,7 +306,13 @@ func dependencyBlocksToCtyValue(dependencyConfigs []Dependency, terragruntOption
 			continue
 		}
 		dependencyConfig := dependencyConfig // https://golang.org/doc/faq#closures_and_goroutines
-		dependencyErrGroup.Go(func() error {
+		dependencyErrGroup.Go(func() (err error) {
+			defer func() {
+				if r := recover(); r != nil {
+					err = errors.WithStackTrace(fmt.Errorf("%v", r))
+				}
+			}()
+
 			// Loose struct to hold the attributes of the dependency. This includes:
 			// - outputs: The module outputs of the target config
 			dependencyEncodingMap := map[string]cty.Value{}
