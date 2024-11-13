@@ -213,6 +213,15 @@ func updateGetters(terragruntConfig *config.TerragruntConfig) func(*getter.Clien
 func downloadSource(terraformSource *terraform.Source, terragruntOptions *options.TerragruntOptions, terragruntConfig *config.TerragruntConfig) error {
 	terragruntOptions.Logger.Debugf("Downloading Terraform configurations from %s into %s", terraformSource.CanonicalSourceURL, terraformSource.DownloadDir)
 
+	if terragruntOptions.DownloadSource != nil {
+		err := terragruntOptions.DownloadSource(terraformSource.DownloadDir, terraformSource.CanonicalSourceURL.String(), terragruntOptions)
+		if err != nil {
+			return errors.WithStackTrace(err)
+		}
+
+		return nil
+	}
+
 	if err := getter.GetAny(terraformSource.DownloadDir, terraformSource.CanonicalSourceURL.String(), updateGetters(terragruntConfig)); err != nil {
 		return errors.WithStackTrace(err)
 	}

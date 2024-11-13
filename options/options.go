@@ -264,6 +264,9 @@ type TerragruntOptions struct {
 	// possible. This is useful in environments where Terragrunt is not installed and
 	// outputs are orchestrated by a different method.
 	GetOutputs func(targetConfig string, ops *TerragruntOptions) (*cty.Value, bool, error)
+
+	// DownloadSource is function for fetching the source of the module
+	DownloadSource func(downloadDir string, url string, ops *TerragruntOptions) error
 }
 
 // IAMOptions represents options that are used by Terragrunt to assume an IAM role.
@@ -463,6 +466,7 @@ func (opts *TerragruntOptions) Clone(terragruntConfigPath string) *TerragruntOpt
 		TerraformImplementation:        opts.TerraformImplementation,
 		Functions:                      opts.Functions,
 		GetOutputs:                     opts.GetOutputs,
+		DownloadSource:                 opts.DownloadSource,
 	}
 }
 
