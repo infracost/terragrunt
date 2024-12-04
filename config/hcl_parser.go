@@ -85,6 +85,7 @@ func decodeHcl(
 	decodeDiagnostics := gohcl.DecodeBody(file.Body, evalContext, out)
 	if decodeDiagnostics != nil && terragruntOptions.Logger != nil {
 		terragruntOptions.Logger.Debugf("a hcl diagnotic was returned decoding file: %q into: %T, err: %s", filename, out, decodeDiagnostics.Error())
+		return decodeDiagnostics
 	}
 
 	return nil

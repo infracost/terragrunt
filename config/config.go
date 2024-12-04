@@ -9,8 +9,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/zclconf/go-cty/cty/gocty"
-
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
@@ -21,6 +19,7 @@ import (
 
 	"github.com/gruntwork-io/go-commons/errors"
 	"github.com/gruntwork-io/go-commons/files"
+
 	"github.com/gruntwork-io/terragrunt/codegen"
 	"github.com/gruntwork-io/terragrunt/options"
 	"github.com/gruntwork-io/terragrunt/remote"
@@ -117,9 +116,9 @@ func (conf *TerragruntConfig) GetIAMRoleOptions() options.IAMRoleOptions {
 	return configIAMRoleOptions
 }
 
-// terragruntConfigFile represents the configuration supported in a Terragrunt configuration file (i.e.
+// TerragruntConfigFile represents the configuration supported in a Terragrunt configuration file (i.e.
 // terragrunt.hcl)
-type terragruntConfigFile struct {
+type TerragruntConfigFile struct {
 	Terraform                   *TerraformConfig `hcl:"terraform,block"`
 	TerraformBinary             *string          `hcl:"terraform_binary,attr"`
 	TerraformVersionConstraint  *string          `hcl:"terraform_version_constraint,attr"`
@@ -806,31 +805,18 @@ func decodeAsTerragruntConfigFile(
 	filename string,
 	terragruntOptions *options.TerragruntOptions,
 	extensions EvalContextExtensions,
-) (*terragruntConfigFile, error) {
-	terragruntConfig := terragruntConfigFile{}
+) (*TerragruntConfigFile, error) {
+	terragruntConfig := TerragruntConfigFile{}
 	err := decodeHcl(file, filename, &terragruntConfig, terragruntOptions, extensions)
-	// in case of render-json command and inputs reference error, we update the inputs with default value
-	if diagErr, ok := err.(hcl.Diagnostics); ok && isRenderJsonCommand(terragruntOptions) && isAttributeAccessError(diagErr) {
-		terragruntOptions.Logger.Warnf("Failed to decode inputs %v", diagErr)
-		// update unknown inputs with default value
-		updatedValue := map[string]cty.Value{}
-		for key, value := range terragruntConfig.Inputs.AsValueMap() {
-			if value.IsKnown() {
-				updatedValue[key] = value
-			} else {
-				updatedValue[key] = cty.StringVal("")
-			}
-		}
-		value, err := gocty.ToCtyValue(updatedValue, terragruntConfig.Inputs.Type())
-		if err != nil {
-			return nil, err
-		}
-		terragruntConfig.Inputs = &value
-		return &terragruntConfig, nil
-	}
 	if err != nil {
-		return nil, err
+		evalContext, evalErr := CreateTerragruntEvalContext(filename, terragruntOptions, extensions)
+		if evalErr != nil {
+			return &terragruntConfig, err
+		}
+
+		terragruntOptions.DiagnosticsFunc(err, filename, &terragruntConfig, evalContext)
 	}
+
 	return &terragruntConfig, nil
 }
 
@@ -880,7 +866,7 @@ func getIndexOfExtraArgsWithName(extraArgs []TerraformExtraArguments, name strin
 
 // Convert the contents of a fully resolved Terragrunt configuration to a TerragruntConfig object
 func convertToTerragruntConfig(
-	terragruntConfigFromFile *terragruntConfigFile,
+	terragruntConfigFromFile *TerragruntConfigFile,
 	configPath string,
 	terragruntOptions *options.TerragruntOptions,
 	contextExtensions EvalContextExtensions,
