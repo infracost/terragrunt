@@ -11,6 +11,7 @@ import (
 
 	"github.com/gruntwork-io/go-commons/errors"
 	"github.com/hashicorp/go-version"
+	hcl "github.com/hashicorp/hcl/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
@@ -267,6 +268,15 @@ type TerragruntOptions struct {
 
 	// DownloadSource is function for fetching the source of the module
 	DownloadSource func(downloadDir string, url string, ops *TerragruntOptions) error
+
+	// DiagnosticsFunc is a function that is called when there is a error parsing a Terragrunt config for a given 
+	// path. This function is called with the error, the filename, the config, and the evaluation context.
+	// Use this function when you want to provide custom error handling for the config parsing and 
+	// augment the partial config with additional information. 
+	//
+	// Note: config will be a type *config.TerragruntConfigFile but is left as an interface{} to avoid a circular dependency
+	// on the config package. Use type assertions if you need to access the config type. e.g. f := config.(*config.TerragruntConfigFile)
+	DiagnosticsFunc func(err error, filename string, config interface{}, evalContext *hcl.EvalContext)
 }
 
 // IAMOptions represents options that are used by Terragrunt to assume an IAM role.
@@ -467,6 +477,7 @@ func (opts *TerragruntOptions) Clone(terragruntConfigPath string) *TerragruntOpt
 		Functions:                      opts.Functions,
 		GetOutputs:                     opts.GetOutputs,
 		DownloadSource:                 opts.DownloadSource,
+		DiagnosticsFunc:                opts.DiagnosticsFunc,
 	}
 }
 
