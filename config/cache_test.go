@@ -62,7 +62,7 @@ func TestTerragruntConfigCacheOperation(t *testing.T) {
 		IsPartial: true, // Any random property will be sufficient
 	}
 
-	cache.Put(testCacheKey, stubTerragruntConfig)
+	cache.Put(testCacheKey, &stubTerragruntConfig)
 	actualResult, found = cache.Get(testCacheKey)
 
 	assert.True(t, found)

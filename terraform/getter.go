@@ -64,7 +64,9 @@ type RegistryServicePath struct {
 // over the file detector. We deferred the implementation for that to a future release.
 // GH issue: https://github.com/gruntwork-io/terragrunt/issues/1772
 type RegistryGetter struct {
-	client *getter.Client
+	client          *getter.Client
+	ProxyForDomains []string
+	ProxyURL        string
 }
 
 // SetClient allows the getter to know what getter client (different from the underlying HTTP client) to use for
@@ -110,7 +112,7 @@ func (tfrGetter *RegistryGetter) Get(dstPath string, srcURL *url.URL) error {
 	}
 	version := versionList[0]
 
-	moduleRegistryBasePath, err := getModuleRegistryURLBasePath(ctx, registryDomain)
+	moduleRegistryBasePath, err := tfrGetter.getModuleRegistryURLBasePath(ctx, registryDomain)
 	if err != nil {
 		return err
 	}
@@ -120,7 +122,7 @@ func (tfrGetter *RegistryGetter) Get(dstPath string, srcURL *url.URL) error {
 		return err
 	}
 
-	terraformGet, err := getTerraformGetHeader(ctx, *moduleURL)
+	terraformGet, err := tfrGetter.getTerraformGetHeader(ctx, *moduleURL)
 	if err != nil {
 		return err
 	}
@@ -204,13 +206,13 @@ func (tfrGetter *RegistryGetter) getSubdir(ctx context.Context, dstPath, sourceU
 // (https://www.terraform.io/docs/internals/remote-service-discovery.html)
 // to figure out where the modules are stored. This will return the base
 // path where the modules can be accessed
-func getModuleRegistryURLBasePath(ctx context.Context, domain string) (string, error) {
+func (tfrGetter *RegistryGetter) getModuleRegistryURLBasePath(ctx context.Context, domain string) (string, error) {
 	sdURL := url.URL{
 		Scheme: "https",
 		Host:   domain,
 		Path:   serviceDiscoveryPath,
 	}
-	bodyData, _, err := httpGETAndGetResponse(ctx, sdURL)
+	bodyData, _, err := tfrGetter.httpGETAndGetResponse(ctx, sdURL)
 	if err != nil {
 		return "", err
 	}
@@ -225,8 +227,8 @@ func getModuleRegistryURLBasePath(ctx context.Context, domain string) (string, e
 
 // getTerraformGetHeader makes an http GET call to the given registry URL and return the contents of the header
 // X-Terraform-Get. This function will return an error if the response does not contain the header.
-func getTerraformGetHeader(ctx context.Context, url url.URL) (string, error) {
-	_, header, err := httpGETAndGetResponse(ctx, url)
+func (tfrGetter *RegistryGetter) getTerraformGetHeader(ctx context.Context, url url.URL) (string, error) {
+	_, header, err := tfrGetter.httpGETAndGetResponse(ctx, url)
 	if err != nil {
 		details := "error receiving HTTP data"
 		return "", errors.WithStackTrace(ModuleDownloadErr{sourceURL: url.String(), details: details})
@@ -260,7 +262,7 @@ func getDownloadURLFromHeader(moduleURL url.URL, terraformGet string) (string, e
 
 // httpGETAndGetResponse is a helper function to make a GET request to the given URL using the http client. This
 // function will then read the response and return the contents + the response header.
-func httpGETAndGetResponse(ctx context.Context, getURL url.URL) ([]byte, *http.Header, error) {
+func (tfrGetter *RegistryGetter) httpGETAndGetResponse(ctx context.Context, getURL url.URL) ([]byte, *http.Header, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", getURL.String(), nil)
 	if err != nil {
 		return nil, nil, errors.WithStackTrace(err)
@@ -273,7 +275,27 @@ func httpGETAndGetResponse(ctx context.Context, getURL url.URL) ([]byte, *http.H
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", authToken))
 	}
 
-	resp, err := httpClient.Do(req)
+	client := httpClient
+	if tfrGetter.ProxyURL != "" {
+		var shouldProxy bool
+		for _, suffix := range tfrGetter.ProxyForDomains {
+			if strings.HasSuffix(getURL.Host, suffix) {
+				shouldProxy = true
+				break
+			}
+		}
+		if shouldProxy {
+			if parsed, err := url.Parse(tfrGetter.ProxyURL); err == nil {
+				client = &http.Client{
+					Transport: &http.Transport{
+						Proxy: http.ProxyURL(parsed),
+					},
+				}
+			}
+		}
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, nil, errors.WithStackTrace(err)
 	}
