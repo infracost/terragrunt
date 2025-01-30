@@ -15,7 +15,7 @@ import (
 func TestGetModuleRegistryURLBasePath(t *testing.T) {
 	t.Parallel()
 
-	basePath, err := getModuleRegistryURLBasePath(context.Background(), "registry.terraform.io")
+	basePath, err := (&RegistryGetter{}).getModuleRegistryURLBasePath(context.Background(), "registry.terraform.io")
 	require.NoError(t, err)
 	assert.Equal(t, "/v1/modules/", basePath)
 }
@@ -28,7 +28,7 @@ func TestGetTerraformHeader(t *testing.T) {
 		Host:   "registry.terraform.io",
 		Path:   "/v1/modules/terraform-aws-modules/vpc/aws/3.3.0/download",
 	}
-	terraformGetHeader, err := getTerraformGetHeader(context.Background(), testModuleURL)
+	terraformGetHeader, err := (&RegistryGetter{}).getTerraformGetHeader(context.Background(), testModuleURL)
 	require.NoError(t, err)
 	assert.Contains(t, terraformGetHeader, "github.com/terraform-aws-modules/terraform-aws-vpc")
 }
