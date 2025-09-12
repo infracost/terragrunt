@@ -113,7 +113,7 @@ func TestTFRGetterRootDir(t *testing.T) {
 	assert.False(t, files.FileExists(filepath.Join(moduleDestPath, "main.tf")))
 
 	tfrGetter := new(RegistryGetter)
-	require.NoError(t, tfrGetter.Get(moduleDestPath, testModuleURL))
+	require.NoError(t, tfrGetter.Get(context.Background(), moduleDestPath, testModuleURL))
 	assert.True(t, files.FileExists(filepath.Join(moduleDestPath, "main.tf")))
 }
 
@@ -132,7 +132,7 @@ func TestTFRGetterSubModule(t *testing.T) {
 	assert.False(t, files.FileExists(filepath.Join(moduleDestPath, "main.tf")))
 
 	tfrGetter := new(RegistryGetter)
-	require.NoError(t, tfrGetter.Get(moduleDestPath, testModuleURL))
+	require.NoError(t, tfrGetter.Get(context.Background(), moduleDestPath, testModuleURL))
 	assert.True(t, files.FileExists(filepath.Join(moduleDestPath, "main.tf")))
 }
 

@@ -269,10 +269,10 @@ type TerragruntOptions struct {
 	// DownloadSource is function for fetching the source of the module
 	DownloadSource func(downloadDir string, url string, ops *TerragruntOptions) error
 
-	// DiagnosticsFunc is a function that is called when there is a error parsing a Terragrunt config for a given 
+	// DiagnosticsFunc is a function that is called when there is a error parsing a Terragrunt config for a given
 	// path. This function is called with the error, the filename, the config, and the evaluation context.
-	// Use this function when you want to provide custom error handling for the config parsing and 
-	// augment the partial config with additional information. 
+	// Use this function when you want to provide custom error handling for the config parsing and
+	// augment the partial config with additional information.
 	//
 	// Note: config will be a type *config.TerragruntConfigFile but is left as an interface{} to avoid a circular dependency
 	// on the config package. Use type assertions if you need to access the config type. e.g. f := config.(*config.TerragruntConfigFile)

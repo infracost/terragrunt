@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"context"
 	"net/url"
 	"os"
 
@@ -25,7 +26,7 @@ type FileCopyGetter struct {
 
 // The original FileGetter does NOT know how to do folder copying (it only does symlinks), so we provide a copy
 // implementation here
-func (g *FileCopyGetter) Get(dst string, u *url.URL) error {
+func (g *FileCopyGetter) Get(ctx context.Context, dst string, u *url.URL) error {
 	path := u.Path
 	if u.RawPath != "" {
 		path = u.RawPath
@@ -43,9 +44,9 @@ func (g *FileCopyGetter) Get(dst string, u *url.URL) error {
 
 // The original FileGetter already knows how to do file copying so long as we set the Copy flag to true, so just
 // delegate to it
-func (g *FileCopyGetter) GetFile(dst string, u *url.URL) error {
+func (g *FileCopyGetter) GetFile(ctx context.Context, dst string, u *url.URL) error {
 	underlying := &getter.FileGetter{Copy: true}
-	if err := underlying.GetFile(dst, u); err != nil {
+	if err := underlying.GetFile(ctx, dst, u); err != nil {
 		errors.WithStackTrace(err)
 	}
 	return nil
