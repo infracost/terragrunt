@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -222,7 +223,7 @@ func downloadSource(terraformSource *terraform.Source, terragruntOptions *option
 		return nil
 	}
 
-	if err := getter.GetAny(terraformSource.DownloadDir, terraformSource.CanonicalSourceURL.String(), updateGetters(terragruntConfig)); err != nil {
+	if err := getter.GetAny(context.Background(), terraformSource.DownloadDir, terraformSource.CanonicalSourceURL.String(), updateGetters(terragruntConfig)); err != nil {
 		return errors.WithStackTrace(err)
 	}
 
