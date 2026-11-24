@@ -235,3 +235,11 @@ func TestStringListInsert(t *testing.T) {
 		t.Logf("%v passed", testCase.list)
 	}
 }
+
+func TestListIntersection(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, []string{}, ListIntersection(nil, []string{"a"}))
+	assert.Equal(t, []string{}, ListIntersection([]string{"a", "b"}, []string{"c"}))
+	assert.Equal(t, []string{"b", "c"}, ListIntersection([]string{"a", "b", "c", "b"}, []string{"c", "b"}))
+}

@@ -191,3 +191,14 @@ func SplitUrls(s, sep string) []string {
 
 	return urls
 }
+
+// ListIntersection returns the elements of list1 that are also in list2, without duplicates.
+func ListIntersection(list1, list2 []string) []string {
+	out := []string{}
+	for _, item := range list1 {
+		if ListContainsElement(list2, item) && !ListContainsElement(out, item) {
+			out = append(out, item)
+		}
+	}
+	return out
+}

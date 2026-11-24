@@ -22,14 +22,13 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/gruntwork-io/go-commons/version"
-	terraws "github.com/gruntwork-io/terratest/modules/aws"
-	"github.com/gruntwork-io/terratest/modules/git"
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -638,8 +637,7 @@ func TestTerragruntSetsAccessLoggingForTfSTateS3BuckeToADifferentBucketWithGiven
 
 	runTerragrunt(t, fmt.Sprintf("terragrunt validate --terragrunt-non-interactive --terragrunt-config %s --terragrunt-working-dir %s", tmpTerragruntConfigPath, examplePath))
 
-	targetLoggingBucket := terraws.GetS3BucketLoggingTarget(t, TERRAFORM_REMOTE_STATE_S3_REGION, s3BucketName)
-	targetLoggingBucketPrefix := terraws.GetS3BucketLoggingTargetPrefix(t, TERRAFORM_REMOTE_STATE_S3_REGION, s3BucketName)
+	targetLoggingBucket, targetLoggingBucketPrefix := bucketLoggingTarget(t, TERRAFORM_REMOTE_STATE_S3_REGION, s3BucketName)
 
 	assert.Equal(t, s3BucketLogsName, targetLoggingBucket)
 	assert.Equal(t, s3BucketLogsTargetPrefix, targetLoggingBucketPrefix)
@@ -650,8 +648,8 @@ func TestTerragruntSetsAccessLoggingForTfSTateS3BuckeToADifferentBucketWithGiven
 	assert.NotNil(t, encryptionConfig.ServerSideEncryptionConfiguration)
 	for _, rule := range encryptionConfig.ServerSideEncryptionConfiguration.Rules {
 		if rule.ApplyServerSideEncryptionByDefault != nil {
-			if rule.ApplyServerSideEncryptionByDefault.SSEAlgorithm != nil {
-				assert.Equal(t, s3.ServerSideEncryptionAes256, *rule.ApplyServerSideEncryptionByDefault.SSEAlgorithm)
+			if rule.ApplyServerSideEncryptionByDefault.SSEAlgorithm != "" {
+				assert.Equal(t, s3types.ServerSideEncryptionAes256, rule.ApplyServerSideEncryptionByDefault.SSEAlgorithm)
 			}
 		}
 	}
@@ -696,8 +694,7 @@ func TestTerragruntSetsAccessLoggingForTfSTateS3BuckeToADifferentBucketWithDefau
 
 	runTerragrunt(t, fmt.Sprintf("terragrunt validate --terragrunt-non-interactive --terragrunt-config %s --terragrunt-working-dir %s", tmpTerragruntConfigPath, examplePath))
 
-	targetLoggingBucket := terraws.GetS3BucketLoggingTarget(t, TERRAFORM_REMOTE_STATE_S3_REGION, s3BucketName)
-	targetLoggingBucketPrefix := terraws.GetS3BucketLoggingTargetPrefix(t, TERRAFORM_REMOTE_STATE_S3_REGION, s3BucketName)
+	targetLoggingBucket, targetLoggingBucketPrefix := bucketLoggingTarget(t, TERRAFORM_REMOTE_STATE_S3_REGION, s3BucketName)
 
 	encryptionConfig, err := bucketEncryption(t, TERRAFORM_REMOTE_STATE_S3_REGION, targetLoggingBucket)
 	assert.NoError(t, err)
@@ -705,8 +702,8 @@ func TestTerragruntSetsAccessLoggingForTfSTateS3BuckeToADifferentBucketWithDefau
 	assert.NotNil(t, encryptionConfig.ServerSideEncryptionConfiguration)
 	for _, rule := range encryptionConfig.ServerSideEncryptionConfiguration.Rules {
 		if rule.ApplyServerSideEncryptionByDefault != nil {
-			if rule.ApplyServerSideEncryptionByDefault.SSEAlgorithm != nil {
-				assert.Equal(t, s3.ServerSideEncryptionAes256, *rule.ApplyServerSideEncryptionByDefault.SSEAlgorithm)
+			if rule.ApplyServerSideEncryptionByDefault.SSEAlgorithm != "" {
+				assert.Equal(t, s3types.ServerSideEncryptionAes256, rule.ApplyServerSideEncryptionByDefault.SSEAlgorithm)
 			}
 		}
 	}
@@ -1306,7 +1303,9 @@ func TestAwsProviderPatch(t *testing.T) {
 	// fill in branch so we can test against updates to the test case file
 	mainContents, err := util.ReadFileAsString(mainTFFile)
 	require.NoError(t, err)
-	branchName := git.GetCurrentBranchName(t)
+	branchOut, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
+	require.NoError(t, err)
+	branchName := strings.TrimSpace(string(branchOut))
 	// https://www.terraform.io/docs/language/modules/sources.html#modules-in-package-sub-directories
 	// https://github.com/gruntwork-io/terragrunt/issues/1778
 	branchName = url.QueryEscape(branchName)
@@ -2966,12 +2965,12 @@ func TestAWSGetCallerIdentityFunctions(t *testing.T) {
 	)
 
 	// Get values from STS
-	sess, err := session.NewSession()
+	cfg, err := awsconfig.LoadDefaultConfig(context.Background(), awsconfig.WithDefaultRegion("us-east-1"))
 	if err != nil {
 		t.Fatalf("Error while creating AWS session: %v", err)
 	}
 
-	identity, err := sts.New(sess).GetCallerIdentity(nil)
+	identity, err := sts.NewFromConfig(cfg).GetCallerIdentity(context.Background(), &sts.GetCallerIdentityInput{})
 	if err != nil {
 		t.Fatalf("Error while getting AWS caller identity: %v", err)
 	}
@@ -4230,14 +4229,14 @@ func validateS3BucketExistsAndIsTagged(t *testing.T, awsRegion string, bucketNam
 func validateDynamoDBTableExistsAndIsTagged(t *testing.T, awsRegion string, tableName string, expectedTags map[string]string) {
 	client := createDynamoDbClientForTest(t, awsRegion)
 
-	var description, err = client.DescribeTable(&dynamodb.DescribeTableInput{TableName: aws.String(tableName)})
+	var description, err = client.DescribeTable(context.Background(), &dynamodb.DescribeTableInput{TableName: aws.String(tableName)})
 
 	if err != nil {
 		// This is a ResourceNotFoundException in case the table does not exist
 		t.Fatal(err)
 	}
 
-	var tags, err2 = client.ListTagsOfResource(&dynamodb.ListTagsOfResourceInput{ResourceArn: description.Table.TableArn})
+	var tags, err2 = client.ListTagsOfResource(context.Background(), &dynamodb.ListTagsOfResourceInput{ResourceArn: description.Table.TableArn})
 
 	if err2 != nil {
 		t.Fatal(err2)
@@ -4252,12 +4251,9 @@ func validateDynamoDBTableExistsAndIsTagged(t *testing.T, awsRegion string, tabl
 	assert.Equal(t, expectedTags, actualTags, "Did not find expected tags on dynamo table.")
 }
 
-func assertS3Tags(expectedTags map[string]string, bucketName string, client *s3.S3, t *testing.T) {
+func assertS3Tags(expectedTags map[string]string, bucketName string, client *s3.Client, t *testing.T) {
 
-	var in = s3.GetBucketTaggingInput{}
-	in.SetBucket(bucketName)
-
-	var tags, err2 = client.GetBucketTagging(&in)
+	var tags, err2 = client.GetBucketTagging(context.Background(), &s3.GetBucketTaggingInput{Bucket: aws.String(bucketName)})
 
 	if err2 != nil {
 		t.Fatal(err2)
@@ -4272,17 +4268,17 @@ func assertS3Tags(expectedTags map[string]string, bucketName string, client *s3.
 	assert.Equal(t, expectedTags, actualTags, "Did not find expected tags on s3 bucket.")
 }
 
-func assertS3PublicAccessBlocks(t *testing.T, client *s3.S3, bucketName string) {
-	resp, err := client.GetPublicAccessBlock(
+func assertS3PublicAccessBlocks(t *testing.T, client *s3.Client, bucketName string) {
+	resp, err := client.GetPublicAccessBlock(context.Background(),
 		&s3.GetPublicAccessBlockInput{Bucket: aws.String(bucketName)},
 	)
 	require.NoError(t, err)
 
 	publicAccessBlockConfig := resp.PublicAccessBlockConfiguration
-	assert.True(t, aws.BoolValue(publicAccessBlockConfig.BlockPublicAcls))
-	assert.True(t, aws.BoolValue(publicAccessBlockConfig.BlockPublicPolicy))
-	assert.True(t, aws.BoolValue(publicAccessBlockConfig.IgnorePublicAcls))
-	assert.True(t, aws.BoolValue(publicAccessBlockConfig.RestrictPublicBuckets))
+	assert.True(t, aws.ToBool(publicAccessBlockConfig.BlockPublicAcls))
+	assert.True(t, aws.ToBool(publicAccessBlockConfig.BlockPublicPolicy))
+	assert.True(t, aws.ToBool(publicAccessBlockConfig.IgnorePublicAcls))
+	assert.True(t, aws.ToBool(publicAccessBlockConfig.RestrictPublicBuckets))
 }
 
 // createS3BucketE create test S3 bucket.
@@ -4304,7 +4300,7 @@ func createS3BucketE(t *testing.T, awsRegion string, bucketName string) error {
 	}
 
 	t.Logf("Creating test s3 bucket %s", bucketName)
-	if _, err := s3Client.CreateBucket(&s3.CreateBucketInput{Bucket: aws.String(bucketName)}); err != nil {
+	if err := remote.CreateS3Bucket(s3Client, aws.String(bucketName), mockOptions); err != nil {
 		t.Logf("Failed to create S3 bucket %s: %v", bucketName, err)
 		return err
 	}
@@ -4349,15 +4345,15 @@ func deleteS3BucketE(t *testing.T, awsRegion string, bucketName string) error {
 
 	t.Logf("Deleting test s3 bucket %s", bucketName)
 
-	out, err := s3Client.ListObjectVersions(&s3.ListObjectVersionsInput{Bucket: aws.String(bucketName)})
+	out, err := s3Client.ListObjectVersions(context.Background(), &s3.ListObjectVersionsInput{Bucket: aws.String(bucketName)})
 	if err != nil {
 		t.Logf("Failed to list object versions in s3 bucket %s: %v", bucketName, err)
 		return err
 	}
 
-	objectIdentifiers := []*s3.ObjectIdentifier{}
+	objectIdentifiers := []s3types.ObjectIdentifier{}
 	for _, version := range out.Versions {
-		objectIdentifiers = append(objectIdentifiers, &s3.ObjectIdentifier{
+		objectIdentifiers = append(objectIdentifiers, s3types.ObjectIdentifier{
 			Key:       version.Key,
 			VersionId: version.VersionId,
 		})
@@ -4366,19 +4362,36 @@ func deleteS3BucketE(t *testing.T, awsRegion string, bucketName string) error {
 	if len(objectIdentifiers) > 0 {
 		deleteInput := &s3.DeleteObjectsInput{
 			Bucket: aws.String(bucketName),
-			Delete: &s3.Delete{Objects: objectIdentifiers},
+			Delete: &s3types.Delete{Objects: objectIdentifiers},
 		}
-		if _, err := s3Client.DeleteObjects(deleteInput); err != nil {
+		if _, err := s3Client.DeleteObjects(context.Background(), deleteInput); err != nil {
 			t.Logf("Error deleting all versions of all objects in bucket %s: %v", bucketName, err)
 			return err
 		}
 	}
 
-	if _, err := s3Client.DeleteBucket(&s3.DeleteBucketInput{Bucket: aws.String(bucketName)}); err != nil {
+	if _, err := s3Client.DeleteBucket(context.Background(), &s3.DeleteBucketInput{Bucket: aws.String(bucketName)}); err != nil {
 		t.Logf("Failed to delete S3 bucket %s: %v", bucketName, err)
 		return err
 	}
 	return nil
+}
+
+// bucketLoggingTarget returns the access logging target bucket and prefix configured on the given bucket.
+func bucketLoggingTarget(t *testing.T, awsRegion string, bucketName string) (string, string) {
+	t.Helper()
+
+	mockOptions, err := options.NewTerragruntOptionsForTest("integration_test")
+	require.NoError(t, err)
+
+	s3Client, err := remote.CreateS3Client(&aws_helper.AwsSessionConfig{Region: awsRegion}, mockOptions)
+	require.NoError(t, err)
+
+	output, err := s3Client.GetBucketLogging(context.Background(), &s3.GetBucketLoggingInput{Bucket: aws.String(bucketName)})
+	require.NoError(t, err)
+	require.NotNil(t, output.LoggingEnabled, "access logging is not enabled on bucket %s", bucketName)
+
+	return aws.ToString(output.LoggingEnabled.TargetBucket), aws.ToString(output.LoggingEnabled.TargetPrefix)
 }
 
 func bucketEncryption(t *testing.T, awsRegion string, bucketName string) (*s3.GetBucketEncryptionOutput, error) {
@@ -4399,7 +4412,7 @@ func bucketEncryption(t *testing.T, awsRegion string, bucketName string) (*s3.Ge
 	}
 
 	input := &s3.GetBucketEncryptionInput{Bucket: aws.String(bucketName)}
-	output, err := s3Client.GetBucketEncryption(input)
+	output, err := s3Client.GetBucketEncryption(context.Background(), input)
 	if err != nil {
 		return nil, nil
 	}
@@ -4422,7 +4435,7 @@ func bucketPolicy(t *testing.T, awsRegion string, bucketName string) (*s3.GetBuc
 	if err != nil {
 		return nil, err
 	}
-	policyOutput, err := s3Client.GetBucketPolicy(&s3.GetBucketPolicyInput{
+	policyOutput, err := s3Client.GetBucketPolicy(context.Background(), &s3.GetBucketPolicyInput{
 		Bucket: aws.String(bucketName),
 	})
 	if err != nil {
@@ -4432,7 +4445,7 @@ func bucketPolicy(t *testing.T, awsRegion string, bucketName string) (*s3.GetBuc
 }
 
 // Create an authenticated client for DynamoDB
-func createDynamoDbClient(awsRegion, awsProfile string, iamRoleArn string) (*dynamodb.DynamoDB, error) {
+func createDynamoDbClient(awsRegion, awsProfile string, iamRoleArn string) (*dynamodb.Client, error) {
 	mockOptions, err := options.NewTerragruntOptionsForTest("integration_test")
 	if err != nil {
 		return nil, err
@@ -4444,15 +4457,15 @@ func createDynamoDbClient(awsRegion, awsProfile string, iamRoleArn string) (*dyn
 		RoleArn: iamRoleArn,
 	}
 
-	session, err := aws_helper.CreateAwsSession(sessionConfig, mockOptions)
+	cfg, err := aws_helper.CreateAwsConfig(sessionConfig, mockOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	return dynamodb.New(session), nil
+	return aws_helper.NewDynamoDBClient(cfg, sessionConfig), nil
 }
 
-func createDynamoDbClientForTest(t *testing.T, awsRegion string) *dynamodb.DynamoDB {
+func createDynamoDbClientForTest(t *testing.T, awsRegion string) *dynamodb.Client {
 	client, err := createDynamoDbClient(awsRegion, "", "")
 	if err != nil {
 		t.Fatal(err)

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gruntwork-io/terratest/modules/files"
+	"github.com/gruntwork-io/terragrunt/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -110,11 +110,11 @@ func TestTFRGetterRootDir(t *testing.T) {
 
 	// The dest path must not exist for go getter to work
 	moduleDestPath := filepath.Join(dstPath, "terraform-aws-vpc")
-	assert.False(t, files.FileExists(filepath.Join(moduleDestPath, "main.tf")))
+	assert.False(t, util.FileExists(filepath.Join(moduleDestPath, "main.tf")))
 
 	tfrGetter := new(RegistryGetter)
 	require.NoError(t, tfrGetter.Get(context.Background(), moduleDestPath, testModuleURL))
-	assert.True(t, files.FileExists(filepath.Join(moduleDestPath, "main.tf")))
+	assert.True(t, util.FileExists(filepath.Join(moduleDestPath, "main.tf")))
 }
 
 func TestTFRGetterSubModule(t *testing.T) {
@@ -129,11 +129,11 @@ func TestTFRGetterSubModule(t *testing.T) {
 
 	// The dest path must not exist for go getter to work
 	moduleDestPath := filepath.Join(dstPath, "terraform-aws-vpc")
-	assert.False(t, files.FileExists(filepath.Join(moduleDestPath, "main.tf")))
+	assert.False(t, util.FileExists(filepath.Join(moduleDestPath, "main.tf")))
 
 	tfrGetter := new(RegistryGetter)
 	require.NoError(t, tfrGetter.Get(context.Background(), moduleDestPath, testModuleURL))
-	assert.True(t, files.FileExists(filepath.Join(moduleDestPath, "main.tf")))
+	assert.True(t, util.FileExists(filepath.Join(moduleDestPath, "main.tf")))
 }
 
 func TestBuildRequestUrlFullPath(t *testing.T) {
