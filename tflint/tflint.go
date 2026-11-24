@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gruntwork-io/terratest/modules/collections"
-
 	"github.com/gruntwork-io/terragrunt/shell"
 
 	"github.com/gruntwork-io/go-commons/errors"
@@ -154,7 +152,7 @@ func tfArgumentsToTflintVar(terragruntOptions *options.TerragruntOptions, hook c
 
 	for _, arg := range config.ExtraArgs {
 		// use extra args which will be used on same command as hook
-		if len(collections.ListIntersection(arg.Commands, hook.Commands)) == 0 {
+		if len(util.ListIntersection(arg.Commands, hook.Commands)) == 0 {
 			continue
 		}
 		if arg.EnvVars != nil {

@@ -1,13 +1,17 @@
 package dynamodb
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/gruntwork-io/go-commons/errors"
 	"github.com/gruntwork-io/terragrunt/options"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +20,7 @@ import (
 func TestCreateLockTableIfNecessaryTableDoesntAlreadyExist(t *testing.T) {
 	t.Parallel()
 
-	withLockTable(t, func(tableName string, client *dynamodb.DynamoDB) {
+	withLockTable(t, func(tableName string, client *dynamodb.Client) {
 		assertCanWriteToTable(t, tableName, client)
 	})
 }
@@ -78,7 +82,7 @@ func TestCreateLockTableIfNecessaryTableAlreadyExists(t *testing.T) {
 	}
 
 	// Create the table the first time
-	withLockTable(t, func(tableName string, client *dynamodb.DynamoDB) {
+	withLockTable(t, func(tableName string, client *dynamodb.Client) {
 		assertCanWriteToTable(t, tableName, client)
 
 		// Try to create the table the second time and make sure you get no errors
@@ -98,7 +102,7 @@ func TestTableTagging(t *testing.T) {
 	tags := map[string]string{"team": "team A"}
 
 	// Create the table the first time
-	withLockTableTagged(t, tags, func(tableName string, client *dynamodb.DynamoDB) {
+	withLockTableTagged(t, tags, func(tableName string, client *dynamodb.Client) {
 		assertCanWriteToTable(t, tableName, client)
 
 		assertTags(tags, tableName, client, t)
@@ -109,14 +113,14 @@ func TestTableTagging(t *testing.T) {
 	})
 }
 
-func assertTags(expectedTags map[string]string, tableName string, client *dynamodb.DynamoDB, t *testing.T) {
-	var description, err = client.DescribeTable(&dynamodb.DescribeTableInput{TableName: aws.String(tableName)})
+func assertTags(expectedTags map[string]string, tableName string, client *dynamodb.Client, t *testing.T) {
+	var description, err = client.DescribeTable(context.Background(), &dynamodb.DescribeTableInput{TableName: aws.String(tableName)})
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var tags, err2 = client.ListTagsOfResource(&dynamodb.ListTagsOfResourceInput{ResourceArn: description.Table.TableArn})
+	var tags, err2 = client.ListTagsOfResource(context.Background(), &dynamodb.ListTagsOfResourceInput{ResourceArn: description.Table.TableArn})
 
 	if err2 != nil {
 		t.Fatal(err2)
@@ -129,4 +133,26 @@ func assertTags(expectedTags map[string]string, tableName string, client *dynamo
 	}
 
 	assert.Equal(t, expectedTags, actualTags, "Did not find expected tags on dynamo table.")
+}
+
+func TestLockTableDescribeResponseWithoutTable(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/x-amz-json-1.0")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	client := dynamodb.New(dynamodb.Options{
+		Region:       "us-east-1",
+		BaseEndpoint: aws.String(srv.URL),
+		Credentials:  credentials.NewStaticCredentialsProvider("id", "secret", ""),
+	})
+
+	_, err := LockTableExistsAndIsActive("table", client)
+	assert.ErrorAs(t, err, &TableDescriptionMissingError{})
+
+	_, err = LockTableCheckSSEncryptionIsOn("table", client)
+	assert.ErrorAs(t, err, &TableDescriptionMissingError{})
 }

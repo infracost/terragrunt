@@ -1,11 +1,13 @@
 package dynamodb
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/gruntwork-io/terragrunt/aws_helper"
 	"github.com/gruntwork-io/terragrunt/options"
 	"github.com/gruntwork-io/terragrunt/util"
@@ -16,7 +18,7 @@ import (
 const DEFAULT_TEST_REGION = "us-east-1"
 
 // Create a DynamoDB client we can use at test time. If there are any errors creating the client, fail the test.
-func createDynamoDbClientForTest(t *testing.T) *dynamodb.DynamoDB {
+func createDynamoDbClientForTest(t *testing.T) *dynamodb.Client {
 	mockOptions, err := options.NewTerragruntOptionsForTest("dynamo_lock_test_utils")
 	if err != nil {
 		t.Fatal(err)
@@ -37,15 +39,15 @@ func uniqueTableNameForTest() string {
 	return fmt.Sprintf("terragrunt_test_%s", util.UniqueId())
 }
 
-func cleanupTableForTest(t *testing.T, tableName string, client *dynamodb.DynamoDB) {
+func cleanupTableForTest(t *testing.T, tableName string, client *dynamodb.Client) {
 	err := DeleteTable(tableName, client)
 	assert.Nil(t, err, "Unexpected error: %v", err)
 }
 
-func assertCanWriteToTable(t *testing.T, tableName string, client *dynamodb.DynamoDB) {
+func assertCanWriteToTable(t *testing.T, tableName string, client *dynamodb.Client) {
 	item := createKeyFromItemId(util.UniqueId())
 
-	_, err := client.PutItem(&dynamodb.PutItemInput{
+	_, err := client.PutItem(context.Background(), &dynamodb.PutItemInput{
 		TableName: aws.String(tableName),
 		Item:      item,
 	})
@@ -53,11 +55,11 @@ func assertCanWriteToTable(t *testing.T, tableName string, client *dynamodb.Dyna
 	assert.Nil(t, err, "Unexpected error: %v", err)
 }
 
-func withLockTable(t *testing.T, action func(tableName string, client *dynamodb.DynamoDB)) {
+func withLockTable(t *testing.T, action func(tableName string, client *dynamodb.Client)) {
 	withLockTableTagged(t, nil, action)
 }
 
-func withLockTableTagged(t *testing.T, tags map[string]string, action func(tableName string, client *dynamodb.DynamoDB)) {
+func withLockTableTagged(t *testing.T, tags map[string]string, action func(tableName string, client *dynamodb.Client)) {
 	client := createDynamoDbClientForTest(t)
 	tableName := uniqueTableNameForTest()
 
@@ -73,8 +75,8 @@ func withLockTableTagged(t *testing.T, tags map[string]string, action func(table
 	action(tableName, client)
 }
 
-func createKeyFromItemId(itemId string) map[string]*dynamodb.AttributeValue {
-	return map[string]*dynamodb.AttributeValue{
-		ATTR_LOCK_ID: &dynamodb.AttributeValue{S: aws.String(itemId)},
+func createKeyFromItemId(itemId string) map[string]types.AttributeValue {
+	return map[string]types.AttributeValue{
+		ATTR_LOCK_ID: &types.AttributeValueMemberS{Value: itemId},
 	}
 }

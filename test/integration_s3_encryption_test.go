@@ -2,18 +2,22 @@ package test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	terraws "github.com/gruntwork-io/terratest/modules/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/gruntwork-io/terragrunt/aws_helper"
 	"github.com/gruntwork-io/terragrunt/config"
+	"github.com/gruntwork-io/terragrunt/options"
+	"github.com/gruntwork-io/terragrunt/remote"
 )
 
 const (
@@ -37,13 +41,8 @@ func TestTerragruntS3SSEAES(t *testing.T) {
 
 	runTerragrunt(t, fmt.Sprintf("terragrunt apply -auto-approve --terragrunt-non-interactive --terragrunt-config %s --terragrunt-working-dir %s", tmpTerragruntConfigPath, s3SSEAESFixturePath))
 
-	client := terraws.NewS3Client(t, TERRAFORM_REMOTE_STATE_S3_REGION)
-	resp, err := client.GetBucketEncryption(&s3.GetBucketEncryptionInput{Bucket: aws.String(s3BucketName)})
-	require.NoError(t, err)
-	require.Equal(t, 1, len(resp.ServerSideEncryptionConfiguration.Rules))
-	sseRule := resp.ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault
-	require.NotNil(t, sseRule)
-	assert.Equal(t, s3.ServerSideEncryptionAes256, aws.StringValue(sseRule.SSEAlgorithm))
+	sseRule := bucketSSERule(t, s3BucketName)
+	assert.Equal(t, s3types.ServerSideEncryptionAes256, sseRule.SSEAlgorithm)
 	assert.Nil(t, sseRule.KMSMasterKeyID)
 }
 
@@ -62,14 +61,9 @@ func TestTerragruntS3SSECustomKey(t *testing.T) {
 
 	runTerragrunt(t, fmt.Sprintf("terragrunt apply -auto-approve --terragrunt-non-interactive --terragrunt-config %s --terragrunt-working-dir %s", tmpTerragruntConfigPath, s3SSECustomKeyFixturePath))
 
-	client := terraws.NewS3Client(t, TERRAFORM_REMOTE_STATE_S3_REGION)
-	resp, err := client.GetBucketEncryption(&s3.GetBucketEncryptionInput{Bucket: aws.String(s3BucketName)})
-	require.NoError(t, err)
-	require.Equal(t, 1, len(resp.ServerSideEncryptionConfiguration.Rules))
-	sseRule := resp.ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault
-	require.NotNil(t, sseRule)
-	assert.Equal(t, s3.ServerSideEncryptionAwsKms, aws.StringValue(sseRule.SSEAlgorithm))
-	assert.True(t, strings.HasSuffix(aws.StringValue(sseRule.KMSMasterKeyID), "alias/dedicated-test-key"))
+	sseRule := bucketSSERule(t, s3BucketName)
+	assert.Equal(t, s3types.ServerSideEncryptionAwsKms, sseRule.SSEAlgorithm)
+	assert.True(t, strings.HasSuffix(aws.ToString(sseRule.KMSMasterKeyID), "alias/dedicated-test-key"))
 
 }
 
@@ -102,12 +96,26 @@ func TestTerragruntS3SSEKeyNotReverted(t *testing.T) {
 	assert.NotContains(t, output, "Bucket Server-Side Encryption")
 
 	// verify that encryption key is not reverted
-	client := terraws.NewS3Client(t, TERRAFORM_REMOTE_STATE_S3_REGION)
-	resp, err := client.GetBucketEncryption(&s3.GetBucketEncryptionInput{Bucket: aws.String(s3BucketName)})
+	sseRule := bucketSSERule(t, s3BucketName)
+	assert.Equal(t, s3types.ServerSideEncryptionAwsKms, sseRule.SSEAlgorithm)
+	assert.True(t, strings.HasSuffix(aws.ToString(sseRule.KMSMasterKeyID), "alias/dedicated-test-key"))
+}
+
+// bucketSSERule returns the bucket's single default server-side encryption rule.
+func bucketSSERule(t *testing.T, bucketName string) *s3types.ServerSideEncryptionByDefault {
+	t.Helper()
+
+	mockOptions, err := options.NewTerragruntOptionsForTest("integration_test")
 	require.NoError(t, err)
-	require.Equal(t, 1, len(resp.ServerSideEncryptionConfiguration.Rules))
+
+	client, err := remote.CreateS3Client(&aws_helper.AwsSessionConfig{Region: TERRAFORM_REMOTE_STATE_S3_REGION}, mockOptions)
+	require.NoError(t, err)
+
+	resp, err := client.GetBucketEncryption(context.Background(), &s3.GetBucketEncryptionInput{Bucket: aws.String(bucketName)})
+	require.NoError(t, err)
+	require.Len(t, resp.ServerSideEncryptionConfiguration.Rules, 1)
+
 	sseRule := resp.ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault
 	require.NotNil(t, sseRule)
-	assert.Equal(t, s3.ServerSideEncryptionAwsKms, aws.StringValue(sseRule.SSEAlgorithm))
-	assert.True(t, strings.HasSuffix(aws.StringValue(sseRule.KMSMasterKeyID), "alias/dedicated-test-key"))
+	return sseRule
 }

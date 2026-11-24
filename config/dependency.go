@@ -12,8 +12,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -799,7 +799,7 @@ func getTerragruntOutputJsonFromRemoteStateS3(
 		return nil, err
 	}
 
-	result, err := s3Client.GetObject(&s3.GetObjectInput{
+	result, err := s3Client.GetObject(context.Background(), &s3.GetObjectInput{
 		Bucket: aws.String(fmt.Sprintf("%s", remoteState.Config["bucket"])),
 		Key:    aws.String(fmt.Sprintf("%s", remoteState.Config["key"])),
 	})
@@ -922,7 +922,7 @@ func runTerraformInitForDependencyOutput(terragruntOptions *options.TerragruntOp
 	if err != nil {
 		terragruntOptions.Logger.Debugf("Ignoring expected error from dependency init call")
 		terragruntOptions.Logger.Debugf("Init call stderr:")
-		terragruntOptions.Logger.Debugf(stderr.String())
+		terragruntOptions.Logger.Debug(stderr.String())
 	}
 }
 

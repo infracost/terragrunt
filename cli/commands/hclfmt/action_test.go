@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gruntwork-io/terratest/modules/files"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -16,7 +15,8 @@ import (
 func TestHCLFmt(t *testing.T) {
 	t.Parallel()
 
-	tmpPath, err := files.CopyFolderToTemp("../../../test/fixture-hclfmt", t.Name(), func(path string) bool { return true })
+	tmpPath := t.TempDir()
+	err := os.CopyFS(tmpPath, os.DirFS("../../../test/fixture-hclfmt"))
 	defer os.RemoveAll(tmpPath)
 	require.NoError(t, err)
 
@@ -76,7 +76,8 @@ func TestHCLFmt(t *testing.T) {
 func TestHCLFmtErrors(t *testing.T) {
 	t.Parallel()
 
-	tmpPath, err := files.CopyFolderToTemp("../../../test/fixture-hclfmt-errors", t.Name(), func(path string) bool { return true })
+	tmpPath := t.TempDir()
+	err := os.CopyFS(tmpPath, os.DirFS("../../../test/fixture-hclfmt-errors"))
 	defer os.RemoveAll(tmpPath)
 	require.NoError(t, err)
 
@@ -112,7 +113,8 @@ func TestHCLFmtErrors(t *testing.T) {
 func TestHCLFmtCheck(t *testing.T) {
 	t.Parallel()
 
-	tmpPath, err := files.CopyFolderToTemp("../../../test/fixture-hclfmt-check", t.Name(), func(path string) bool { return true })
+	tmpPath := t.TempDir()
+	err := os.CopyFS(tmpPath, os.DirFS("../../../test/fixture-hclfmt-check"))
 	defer os.RemoveAll(tmpPath)
 	require.NoError(t, err)
 
@@ -158,7 +160,8 @@ func TestHCLFmtCheck(t *testing.T) {
 func TestHCLFmtCheckErrors(t *testing.T) {
 	t.Parallel()
 
-	tmpPath, err := files.CopyFolderToTemp("../../../test/fixture-hclfmt-check-errors", t.Name(), func(path string) bool { return true })
+	tmpPath := t.TempDir()
+	err := os.CopyFS(tmpPath, os.DirFS("../../../test/fixture-hclfmt-check-errors"))
 	defer os.RemoveAll(tmpPath)
 	require.NoError(t, err)
 
@@ -204,7 +207,8 @@ func TestHCLFmtCheckErrors(t *testing.T) {
 func TestHCLFmtFile(t *testing.T) {
 	t.Parallel()
 
-	tmpPath, err := files.CopyFolderToTemp("../../../test/fixture-hclfmt", t.Name(), func(path string) bool { return true })
+	tmpPath := t.TempDir()
+	err := os.CopyFS(tmpPath, os.DirFS("../../../test/fixture-hclfmt"))
 	defer os.RemoveAll(tmpPath)
 	require.NoError(t, err)
 
@@ -261,7 +265,8 @@ func TestHCLFmtFile(t *testing.T) {
 func TestHCLFmtHeredoc(t *testing.T) {
 	t.Parallel()
 
-	tmpPath, err := files.CopyFolderToTemp("../../../test/fixture-hclfmt-heredoc", t.Name(), func(path string) bool { return true })
+	tmpPath := t.TempDir()
+	err := os.CopyFS(tmpPath, os.DirFS("../../../test/fixture-hclfmt-heredoc"))
 	defer os.RemoveAll(tmpPath)
 	require.NoError(t, err)
 
